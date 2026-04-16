@@ -120,7 +120,7 @@ Shows users, project applications, proof uploads, chat activity, and system stat
 Default admin login:
 
 ```text
-Email: admin@skillbridge.local
+Email: kdchoubey0@gmail.com
 Password: admin123
 ```
 
