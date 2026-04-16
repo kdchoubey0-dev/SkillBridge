@@ -189,7 +189,9 @@ h1 {
 .card,
 .task,
 .message,
-.proof {
+.proof,
+.application-card,
+.sprint-card {
   margin-bottom: 12px;
 }
 
@@ -459,8 +461,98 @@ textarea {
   gap: 12px;
 }
 
+.workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.board-panel {
+  min-width: 0;
+}
+
 .column {
   min-width: 0;
+}
+
+.column h2 {
+  margin-bottom: 12px;
+  font-size: 1.05rem;
+}
+
+.task {
+  display: grid;
+  gap: 12px;
+  min-height: 148px;
+}
+
+.task-head {
+  display: grid;
+  gap: 8px;
+}
+
+.task-head h3 {
+  margin-bottom: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+.task-head span {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 25px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--green);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.task-meta {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.task-meta small {
+  overflow-wrap: anywhere;
+}
+
+.sprint-list {
+  display: grid;
+  gap: 10px;
+}
+
+.sprint-card,
+.application-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.sprint-card p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.application-list {
+  display: grid;
+  gap: 10px;
+}
+
+.application-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.application-card span,
+.empty-state {
+  color: var(--muted);
 }
 
 .message {
@@ -524,7 +616,8 @@ textarea {
   .auth-grid,
   .metrics,
   .board,
-  .project-grid {
+  .project-grid,
+  .workspace-layout {
     grid-template-columns: 1fr;
   }
 

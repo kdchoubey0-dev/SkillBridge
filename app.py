@@ -12,10 +12,11 @@ state = {
     "goal": "Build a social-impact web app with a global team.",
     "credits": 128,
     "tasks": [
-        {"id": 1, "title": "Design onboarding flow", "status": "To do", "skill": "UX"},
-        {"id": 2, "title": "Build project API schema", "status": "Doing", "skill": "Backend"},
-        {"id": 3, "title": "Translate workspace labels", "status": "Verified", "skill": "Language"},
+        {"id": 1, "title": "Design onboarding flow", "status": "To do", "skill": "UX", "owner": "Mina", "due": "Today"},
+        {"id": 2, "title": "Build project API schema", "status": "Doing", "skill": "Backend", "owner": "Aarav", "due": "Tomorrow"},
+        {"id": 3, "title": "Translate workspace labels", "status": "Verified", "skill": "Language", "owner": "You", "due": "Done"},
     ],
+    "applications": [],
     "messages": [
         {"name": "Aarav", "text": "I pushed the first task model and need UX review."},
         {"name": "Mina", "text": "I can review low-bandwidth screens today."},
@@ -295,7 +296,17 @@ def project_catalog(project_filter="All", user=None):
           <div class="tags">{tags(project["roles"])}</div>
           <h4>Needed skills</h4>
           <div class="tags">{tags(project["skills"])}</div>
-          <a class="primary full" href="/?view={'workspace' if user else 'login'}">{'Request to join' if user else 'Create account to join'}</a>
+          {
+            f'''
+            <form method="post" action="/action">
+              <input type="hidden" name="action" value="apply_project">
+              <input type="hidden" name="project" value="{h(project["title"])}">
+              <button class="primary full" type="submit">Request to join</button>
+            </form>
+            '''
+            if user
+            else '<a class="primary full" href="/?view=login">Create account to join</a>'
+          }
         </article>
         """
         for project in visible_projects
@@ -352,16 +363,34 @@ def login_page(message=""):
 
 
 def workspace():
+    applications = "".join(
+        f"""
+        <article class="application-card">
+          <strong>{h(item["project"])}</strong>
+          <span>{h(item["status"])}</span>
+        </article>
+        """
+        for item in state["applications"]
+    )
+    if not applications:
+        applications = '<p class="empty-state">No project applications yet. Explore projects and request to join one.</p>'
     columns = ""
     for status in ["To do", "Doing", "Verified"]:
         task_cards = "".join(
             f"""
             <article class="task">
-              <div class="row"><h3>{h(task["title"])}</h3><span>{h(task["skill"])}</span></div>
+              <div class="task-head">
+                <h3>{h(task["title"])}</h3>
+                <span>{h(task["skill"])}</span>
+              </div>
+              <div class="task-meta">
+                <small>Owner: {h(task["owner"])}</small>
+                <small>Due: {h(task["due"])}</small>
+              </div>
               <form method="post" action="/action">
                 <input type="hidden" name="action" value="move_task">
                 <input type="hidden" name="id" value="{task["id"]}">
-                <button class="button" type="submit">Move</button>
+                <button class="button full" type="submit">Move</button>
               </form>
             </article>
             """
@@ -370,11 +399,30 @@ def workspace():
         )
         columns += f'<section class="column"><h2>{status}</h2>{task_cards}</section>'
     messages = "".join(f'<div class="message"><strong>{h(m["name"])}</strong><p>{h(m["text"])}</p></div>' for m in state["messages"])
+    sprint_tasks = [
+        ("Proof Check", "Add screenshot, link, reviewer name, and measurable result before verification."),
+        ("Mentor Review", "Use 8 credits to get feedback before moving a task to verified."),
+        ("Low Data QA", "Test the page on a small screen and reduce heavy visual elements if needed."),
+    ]
+    sprint_cards = "".join(f'<article class="sprint-card"><strong>{h(title)}</strong><p>{h(text)}</p></article>' for title, text in sprint_tasks)
     return f"""
       <section>
-        <div class="section-head"><h2>Project Workspace</h2><p>Manage real tasks, team roles, messages, and contribution evidence.</p></div>
-        <div class="grid two">
-          <section class="panel board">{columns}</section>
+        <div class="section-head project-title-row">
+          <div><h2>Project Workspace</h2><p>Manage tasks, applications, messages, and proof-ready sprint guidance.</p></div>
+          <form method="post" action="/action">
+            <input type="hidden" name="action" value="add_ai_task">
+            <button class="primary" type="submit">Add AI Task</button>
+          </form>
+        </div>
+        <div class="workspace-layout">
+          <section class="panel board-panel">
+            <h2>Task Board</h2>
+            <div class="board">{columns}</div>
+          </section>
+          <section class="panel">
+            <h2>AI Sprint Planner</h2>
+            <div class="sprint-list">{sprint_cards}</div>
+          </section>
           <section class="panel">
             <h2>Team Room</h2>
             {messages}
@@ -383,6 +431,10 @@ def workspace():
               <input name="message" placeholder="Share an update">
               <button class="primary" type="submit">Send</button>
             </form>
+          </section>
+          <section class="panel">
+            <h2>Application Tracker</h2>
+            <div class="application-list">{applications}</div>
           </section>
         </div>
       </section>
@@ -534,6 +586,26 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Set-Cookie", "skillbridge_session=; Path=/; Max-Age=0")
             self.send_header("Location", "/?view=login")
             self.end_headers()
+        elif action == "apply_project":
+            project_name = data.get("project", ["Untitled project"])[0]
+            if not any(item["project"] == project_name for item in state["applications"]):
+                state["applications"].insert(0, {"project": project_name, "status": "Review pending"})
+            redirect(self, "workspace")
+        elif action == "add_ai_task":
+            next_id = max(task["id"] for task in state["tasks"]) + 1
+            selected = ", ".join(sorted(state["skills"])) or "Collaboration"
+            state["tasks"].insert(
+                0,
+                {
+                    "id": next_id,
+                    "title": "Prepare proof-ready contribution",
+                    "status": "To do",
+                    "skill": selected.split(", ")[0],
+                    "owner": "You",
+                    "due": "Next sprint",
+                },
+            )
+            redirect(self, "workspace")
         elif action == "move_task":
             task_id = int(data.get("id", [0])[0])
             order = {"To do": "Doing", "Doing": "Verified", "Verified": "To do"}
