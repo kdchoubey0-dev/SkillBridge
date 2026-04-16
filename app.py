@@ -197,9 +197,9 @@ def ai_sorted_projects(project_list):
     return sorted(project_list, key=ai_score, reverse=True)
 
 
-users["admin@skillbridge.local"] = {
+users["kdchoubey0@gmail.com"] = {
     "name": "Admin",
-    "email": "admin@skillbridge.local",
+    "email": "kdchoubey0@gmail.com",
     "password_hash": password_hash("admin123"),
     "role": "admin",
 }
