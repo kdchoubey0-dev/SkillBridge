@@ -2,10 +2,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from html import escape
 from pathlib import Path
 from secrets import token_hex
+from socket import error as socket_error
 from urllib.parse import parse_qs, urlencode, urlparse
 
 PORT = 8000
 ROOT = Path(__file__).parent
+
+
+class SkillBridgeServer(ThreadingHTTPServer):
+    allow_reuse_address = True
 
 state = {
     "skills": {"Frontend", "Research", "Communication"},
@@ -635,7 +640,20 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    server = ThreadingHTTPServer(("localhost", PORT), Handler)
-    print(f"SkillBridge is running at http://localhost:{PORT}")
+    server = None
+    active_port = PORT
+    for port in range(PORT, PORT + 20):
+        try:
+            server = SkillBridgeServer(("localhost", port), Handler)
+            active_port = port
+            break
+        except OSError as error:
+            if getattr(error, "errno", None) != 48:
+                raise
+    if server is None:
+        raise socket_error("No free port found from 8000 to 8019")
+    print(f"SkillBridge is running at http://localhost:{active_port}")
+    if active_port != PORT:
+        print(f"Port {PORT} was busy, so SkillBridge started on {active_port}")
     print("Press Control + C to stop")
     server.serve_forever()
