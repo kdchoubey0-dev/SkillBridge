@@ -1,6 +1,7 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from html import escape
 from pathlib import Path
+from secrets import token_hex
 from urllib.parse import parse_qs, urlencode, urlparse
 
 PORT = 8000
@@ -26,12 +27,19 @@ state = {
     ],
 }
 
+users = {}
+sessions = {}
+
 projects = [
     {
         "title": "Community Health Finder",
         "type": "Impact",
         "fit": 94,
         "skills": ["Frontend", "Maps", "Research"],
+        "roles": ["Frontend Developer", "Research Lead", "Accessibility Tester"],
+        "duration": "4 weeks",
+        "level": "Beginner friendly",
+        "status": "Recruiting",
         "summary": "A low-bandwidth directory for local clinics, volunteers, and emergency resources.",
     },
     {
@@ -39,6 +47,10 @@ projects = [
         "type": "Open Source",
         "fit": 91,
         "skills": ["AI", "Content", "Language"],
+        "roles": ["AI Prompt Builder", "Lesson Writer", "Translator"],
+        "duration": "6 weeks",
+        "level": "Intermediate",
+        "status": "Active sprint",
         "summary": "Reusable lesson tools for peer mentors in multilingual learning communities.",
     },
     {
@@ -46,6 +58,10 @@ projects = [
         "type": "Startup",
         "fit": 88,
         "skills": ["Product", "Backend", "Analytics"],
+        "roles": ["Backend Developer", "Product Analyst", "QA Tester"],
+        "duration": "5 weeks",
+        "level": "Intermediate",
+        "status": "Recruiting",
         "summary": "Verified short work sprints for learners who need practical portfolio proof.",
     },
     {
@@ -53,7 +69,33 @@ projects = [
         "type": "Impact",
         "fit": 86,
         "skills": ["HTML", "Design", "Docs"],
+        "roles": ["HTML Developer", "Visual Designer", "Documentation Writer"],
+        "duration": "3 weeks",
+        "level": "Beginner friendly",
+        "status": "Mentor available",
         "summary": "Modern site and donation workflow for small nonprofit teams on slow networks.",
+    },
+    {
+        "title": "Local Jobs Skill Map",
+        "type": "Career",
+        "fit": 84,
+        "skills": ["Data", "Research", "Charts"],
+        "roles": ["Data Collector", "Chart Designer", "Community Researcher"],
+        "duration": "4 weeks",
+        "level": "Beginner friendly",
+        "status": "New",
+        "summary": "A simple dashboard that maps local job demand to practical learning paths.",
+    },
+    {
+        "title": "Disaster Help Desk",
+        "type": "Impact",
+        "fit": 82,
+        "skills": ["Backend", "Security", "Support"],
+        "roles": ["API Developer", "Security Reviewer", "Support Coordinator"],
+        "duration": "7 weeks",
+        "level": "Advanced",
+        "status": "Planning",
+        "summary": "A volunteer support queue for verified emergency requests and local responders.",
     },
 ]
 
@@ -70,15 +112,26 @@ def h(value):
     return escape(str(value), quote=True)
 
 
-def query(view):
-    return urlencode({"view": view})
+def query(view, **params):
+    data = {"view": view}
+    data.update({key: value for key, value in params.items() if value})
+    return urlencode(data)
 
 
 def tags(items):
     return "".join(f'<span class="tag">{h(item)}</span>' for item in items)
 
 
-def layout(view, content):
+def current_user(handler):
+    cookie = handler.headers.get("Cookie", "")
+    for part in cookie.split(";"):
+        key, _, value = part.strip().partition("=")
+        if key == "skillbridge_session" and value in sessions:
+            return users.get(sessions[value])
+    return None
+
+
+def layout(view, content, user=None):
     links = [
         ("dashboard", "Dashboard"),
         ("matching", "Matching"),
@@ -91,6 +144,20 @@ def layout(view, content):
     nav = "".join(
         f'<a class="nav-item {"active" if view == key else ""}" href="/?{query(key)}">{label}</a>'
         for key, label in links
+    )
+    account = (
+        f"""
+        <div class="account-box">
+          <span>{h(user["name"])}</span>
+          <small>{h(user["email"])}</small>
+          <form method="post" action="/action">
+            <input type="hidden" name="action" value="logout">
+            <button class="button compact" type="submit">Logout</button>
+          </form>
+        </div>
+        """
+        if user
+        else '<a class="primary" href="/?view=login">Create Account</a>'
     )
     return f"""<!doctype html>
 <html lang="en">
@@ -112,7 +179,10 @@ def layout(view, content):
             <p>Open-source collaborative learning platform</p>
             <h1>SkillBridge</h1>
           </div>
-          <a class="primary" href="/?view=projects">Join Project</a>
+          <div class="top-actions">
+            <a class="button" href="/?view=projects">Explore Projects</a>
+            {account}
+          </div>
         </header>
         {content}
       </main>
@@ -162,8 +232,8 @@ def matching():
     checks = "".join(
         f"""
         <label class="chip">
-          <input type="checkbox" name="skills" value="{h(skill)}" {"checked" if skill in state["skills"] else ""}>
-          {h(skill)}
+          <input class="check-input" type="checkbox" name="skills" value="{h(skill)}" {"checked" if skill in state["skills"] else ""}>
+          <span>{h(skill)}</span>
         </label>
         """
         for skill in all_skills
@@ -198,23 +268,85 @@ def matching():
     """
 
 
-def project_catalog():
+def project_catalog(project_filter="All", user=None):
+    options = ["All"] + sorted({project["type"] for project in projects})
+    filter_bar = "".join(
+        f'<a class="filter-pill {"active" if project_filter == option else ""}" href="/?{query("projects", project=option)}">{h(option)}</a>'
+        for option in options
+    )
+    visible_projects = projects if project_filter == "All" else [project for project in projects if project["type"] == project_filter]
     cards = "".join(
         f"""
-        <article class="card project">
-          <span class="type">{h(project["type"])}</span>
-          <h3>{h(project["title"])}</h3>
+        <article class="project-card">
+          <div class="project-head">
+            <div>
+              <span class="type">{h(project["type"])}</span>
+              <h3>{h(project["title"])}</h3>
+            </div>
+            <strong>{project["fit"]}%</strong>
+          </div>
           <p>{h(project["summary"])}</p>
+          <div class="project-meta">
+            <span>{h(project["duration"])}</span>
+            <span>{h(project["level"])}</span>
+            <span>{h(project["status"])}</span>
+          </div>
+          <h4>Open roles</h4>
+          <div class="tags">{tags(project["roles"])}</div>
+          <h4>Needed skills</h4>
           <div class="tags">{tags(project["skills"])}</div>
-          <a class="button" href="/?view=workspace">Request to join</a>
+          <a class="primary full" href="/?view={'workspace' if user else 'login'}">{'Request to join' if user else 'Create account to join'}</a>
         </article>
         """
-        for project in projects
+        for project in visible_projects
     )
     return f"""
       <section>
-        <div class="section-head"><h2>Open Projects</h2><p>Pick a project where your contribution can become verified portfolio evidence.</p></div>
-        <div class="grid cards">{cards}</div>
+        <div class="section-head project-title-row">
+          <div>
+            <h2>Open Projects</h2>
+            <p>Pick a real project, understand the roles, and turn contributions into verified portfolio proof.</p>
+          </div>
+          <a class="button" href="/?view=matching">Improve Match</a>
+        </div>
+        <div class="filter-bar">{filter_bar}</div>
+        <div class="project-grid">{cards}</div>
+      </section>
+    """
+
+
+def login_page(message=""):
+    note = f'<p class="form-note">{h(message)}</p>' if message else ""
+    return f"""
+      <section>
+        <div class="section-head"><h2>Create Account or Login</h2><p>Use your SkillBridge account to join projects, save skills, and build proof of work.</p></div>
+        {note}
+        <div class="grid auth-grid">
+          <section class="panel">
+            <h2>Create Account</h2>
+            <form method="post" action="/action" class="auth-form">
+              <input type="hidden" name="action" value="create_account">
+              <label>Full name</label>
+              <input name="name" required placeholder="Your name">
+              <label>Email</label>
+              <input name="email" type="email" required placeholder="you@example.com">
+              <label>Password</label>
+              <input name="password" type="password" required minlength="4" placeholder="Minimum 4 characters">
+              <button class="primary" type="submit">Create Account</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h2>Login</h2>
+            <form method="post" action="/action" class="auth-form">
+              <input type="hidden" name="action" value="login">
+              <label>Email</label>
+              <input name="email" type="email" required placeholder="you@example.com">
+              <label>Password</label>
+              <input name="password" type="password" required placeholder="Your password">
+              <button class="button" type="submit">Login</button>
+            </form>
+          </section>
+        </div>
       </section>
     """
 
@@ -318,11 +450,11 @@ def coach():
 views = {
     "dashboard": dashboard,
     "matching": matching,
-    "projects": project_catalog,
     "workspace": workspace,
     "portfolio": portfolio,
     "credits": credits,
     "coach": coach,
+    "login": login_page,
 }
 
 
@@ -345,8 +477,13 @@ class Handler(BaseHTTPRequestHandler):
             return
         params = parse_qs(parsed.query)
         view = params.get("view", ["dashboard"])[0]
-        view = view if view in views else "dashboard"
-        data = layout(view, views[view]()).encode("utf-8")
+        user = current_user(self)
+        if view == "projects":
+            content = project_catalog(params.get("project", ["All"])[0], user)
+        else:
+            view = view if view in views else "dashboard"
+            content = views[view]()
+        data = layout(view, content, user).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
@@ -361,6 +498,42 @@ class Handler(BaseHTTPRequestHandler):
             state["skills"] = set(data.get("skills", []))
             state["goal"] = data.get("goal", [state["goal"]])[0]
             redirect(self, "dashboard")
+        elif action == "create_account":
+            name = data.get("name", [""])[0].strip()
+            email = data.get("email", [""])[0].strip().lower()
+            password = data.get("password", [""])[0]
+            if not name or not email or len(password) < 4:
+                self.send_response(303)
+                self.send_header("Location", "/?view=login")
+                self.end_headers()
+                return
+            users[email] = {"name": name, "email": email, "password": password}
+            session_id = token_hex(24)
+            sessions[session_id] = email
+            self.send_response(303)
+            self.send_header("Set-Cookie", f"skillbridge_session={session_id}; Path=/; HttpOnly")
+            self.send_header("Location", "/?view=projects")
+            self.end_headers()
+        elif action == "login":
+            email = data.get("email", [""])[0].strip().lower()
+            password = data.get("password", [""])[0]
+            user = users.get(email)
+            if not user or user["password"] != password:
+                self.send_response(303)
+                self.send_header("Location", "/?view=login")
+                self.end_headers()
+                return
+            session_id = token_hex(24)
+            sessions[session_id] = email
+            self.send_response(303)
+            self.send_header("Set-Cookie", f"skillbridge_session={session_id}; Path=/; HttpOnly")
+            self.send_header("Location", "/?view=dashboard")
+            self.end_headers()
+        elif action == "logout":
+            self.send_response(303)
+            self.send_header("Set-Cookie", "skillbridge_session=; Path=/; Max-Age=0")
+            self.send_header("Location", "/?view=login")
+            self.end_headers()
         elif action == "move_task":
             task_id = int(data.get("id", [0])[0])
             order = {"To do": "Doing", "Doing": "Verified", "Verified": "To do"}
