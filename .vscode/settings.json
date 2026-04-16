@@ -1,5 +1,5 @@
 {
-  "python.defaultInterpreterPath": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
+  "python.defaultInterpreterPath": "python3",
   "python.terminal.executeInFileDir": true,
   "code-runner.executorMap": {
     "python": "python3 -u"
