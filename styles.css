@@ -167,7 +167,8 @@ h1 {
 .metric,
 .task,
 .proof,
-.ledger {
+.ledger,
+.admin-row {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -588,15 +589,38 @@ textarea {
   color: white;
 }
 
-.ledger {
+.ledger,
+.admin-row {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
 }
 
-.ledger strong {
+.ledger strong,
+.admin-row strong {
   color: var(--green);
+}
+
+.admin-row {
+  align-items: center;
+  padding: 12px;
+}
+
+.admin-row span {
+  overflow-wrap: anywhere;
+}
+
+.proof-uploader {
+  margin: 16px 0;
+}
+
+.upload-proof strong {
+  font-size: 0.78rem;
+}
+
+input[type="file"] {
+  background: white;
 }
 
 .balance {

@@ -9,14 +9,19 @@ Many students and self-learners have theoretical knowledge but do not get enough
 ## Main Features
 
 - Create account and login system
+- Salted password hashing with PBKDF2
+- Admin dashboard
 - Skill-based collaborator matching
 - Open project catalog with filters
 - Project application tracker
 - Project workspace with task board
 - AI sprint planner for next task guidance
-- Team room for project communication
+- Auto-refresh team room for project communication
 - Proof of Work portfolio section
+- File upload for proof of work
 - Skill credit system for mentorship and peer help
+- Multilingual interface toggle
+- AI-based project recommendations
 - Responsive design for laptop and mobile screens
 - Automatic port fallback if port 8000 is busy
 
@@ -86,7 +91,7 @@ Run SkillBridge
 
 ### Dashboard
 
-Shows recommended projects, platform metrics, and collaboration fit.
+Shows AI-ranked recommended projects, platform metrics, and collaboration fit.
 
 ### Skill Matching
 
@@ -94,30 +99,38 @@ Allows users to select skills and find collaborators with complementary abilitie
 
 ### Projects
 
-Displays real project opportunities with roles, required skills, difficulty level, duration, and application action.
+Displays AI-ranked real project opportunities with roles, required skills, difficulty level, duration, and application action.
 
 ### Workspace
 
-Provides a task board, team messages, application tracker, and AI sprint planning suggestions.
+Provides a task board, auto-refresh team messages, application tracker, and AI sprint planning suggestions.
 
 ### Proof of Work
 
-Shows verified contribution records that can be used as a digital portfolio.
+Shows verified contribution records and uploaded proof files that can be used as a digital portfolio.
 
 ### Credits
 
 Tracks skill credits earned or spent through mentorship, review, and peer support.
 
+### Admin Dashboard
+
+Shows users, project applications, proof uploads, chat activity, and system status.
+
+Default admin login:
+
+```text
+Email: admin@skillbridge.local
+Password: admin123
+```
+
 ## Future Scope
 
 - Database integration
 - Persistent user accounts
-- Real authentication security
-- Admin dashboard
-- Real-time chat
-- File upload for proof of work
-- Multilingual interface
-- AI-based project recommendations
+- Email verification
+- Role-based permissions
+- Production deployment
 
 ## Author
 

@@ -1,12 +1,18 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from html import escape
+from hashlib import pbkdf2_hmac
+from hmac import compare_digest
+from os import urandom
 from pathlib import Path
+from re import sub
 from secrets import token_hex
 from socket import error as socket_error
+from time import strftime
 from urllib.parse import parse_qs, urlencode, urlparse
 
 PORT = 8000
 ROOT = Path(__file__).parent
+UPLOAD_DIR = ROOT / "uploads"
 
 
 class SkillBridgeServer(ThreadingHTTPServer):
@@ -22,6 +28,7 @@ state = {
         {"id": 3, "title": "Translate workspace labels", "status": "Verified", "skill": "Language", "owner": "You", "due": "Done"},
     ],
     "applications": [],
+    "proof_uploads": [],
     "messages": [
         {"name": "Aarav", "text": "I pushed the first task model and need UX review."},
         {"name": "Mina", "text": "I can review low-bandwidth screens today."},
@@ -35,6 +42,45 @@ state = {
 
 users = {}
 sessions = {}
+
+translations = {
+    "en": {
+        "subtitle": "Open-source collaborative learning platform",
+        "dashboard": "Dashboard",
+        "matching": "Matching",
+        "projects": "Projects",
+        "workspace": "Workspace",
+        "proof": "Proof",
+        "credits": "Credits",
+        "coach": "AI Coach",
+        "admin": "Admin",
+        "explore": "Explore Projects",
+        "account": "Create Account",
+        "logout": "Logout",
+        "dashboard_text": "Find real teams, build public proof, and exchange skills without payment barriers.",
+        "recommended": "AI Recommended Projects",
+        "workspace_text": "Manage tasks, applications, live messages, proof files, and sprint guidance.",
+        "language": "Hindi",
+    },
+    "hi": {
+        "subtitle": "Open-source collaborative learning platform",
+        "dashboard": "Dashboard",
+        "matching": "Matching",
+        "projects": "Projects",
+        "workspace": "Workspace",
+        "proof": "Proof",
+        "credits": "Credits",
+        "coach": "AI Coach",
+        "admin": "Admin",
+        "explore": "Projects Dekho",
+        "account": "Account Banao",
+        "logout": "Logout",
+        "dashboard_text": "Real teams dhundo, public proof banao, aur bina payment barrier ke skills exchange karo.",
+        "recommended": "AI Recommended Projects",
+        "workspace_text": "Tasks, applications, live messages, proof files, aur sprint guidance manage karo.",
+        "language": "English",
+    },
+}
 
 projects = [
     {
@@ -118,6 +164,47 @@ def h(value):
     return escape(str(value), quote=True)
 
 
+def t(lang, key):
+    return translations.get(lang, translations["en"]).get(key, translations["en"].get(key, key))
+
+
+def password_hash(password):
+    salt = urandom(16)
+    digest = pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 120000)
+    return f"{salt.hex()}:{digest.hex()}"
+
+
+def password_ok(password, stored):
+    salt_hex, digest_hex = stored.split(":", 1)
+    digest = pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), 120000)
+    return compare_digest(digest.hex(), digest_hex)
+
+
+def clean_filename(filename):
+    name = Path(filename).name
+    name = sub(r"[^A-Za-z0-9._-]+", "_", name).strip("._")
+    return name or "proof-file"
+
+
+def ai_score(project):
+    selected = {skill.lower() for skill in state["skills"]}
+    project_skills = {skill.lower() for skill in project["skills"]}
+    overlap = len(selected & project_skills)
+    return min(99, project["fit"] + overlap * 3)
+
+
+def ai_sorted_projects(project_list):
+    return sorted(project_list, key=ai_score, reverse=True)
+
+
+users["admin@skillbridge.local"] = {
+    "name": "Admin",
+    "email": "admin@skillbridge.local",
+    "password_hash": password_hash("admin123"),
+    "role": "admin",
+}
+
+
 def query(view, **params):
     data = {"view": view}
     data.update({key: value for key, value in params.items() if value})
@@ -137,20 +224,23 @@ def current_user(handler):
     return None
 
 
-def layout(view, content, user=None):
+def layout(view, content, user=None, lang="en"):
     links = [
-        ("dashboard", "Dashboard"),
-        ("matching", "Matching"),
-        ("projects", "Projects"),
-        ("workspace", "Workspace"),
-        ("portfolio", "Proof"),
-        ("credits", "Credits"),
-        ("coach", "AI Coach"),
+        ("dashboard", t(lang, "dashboard")),
+        ("matching", t(lang, "matching")),
+        ("projects", t(lang, "projects")),
+        ("workspace", t(lang, "workspace")),
+        ("portfolio", t(lang, "proof")),
+        ("credits", t(lang, "credits")),
+        ("coach", t(lang, "coach")),
     ]
+    if user and user.get("role") == "admin":
+        links.append(("admin", t(lang, "admin")))
     nav = "".join(
-        f'<a class="nav-item {"active" if view == key else ""}" href="/?{query(key)}">{label}</a>'
+        f'<a class="nav-item {"active" if view == key else ""}" href="/?{query(key, lang=lang)}">{label}</a>'
         for key, label in links
     )
+    next_lang = "hi" if lang == "en" else "en"
     account = (
         f"""
         <div class="account-box">
@@ -158,18 +248,20 @@ def layout(view, content, user=None):
           <small>{h(user["email"])}</small>
           <form method="post" action="/action">
             <input type="hidden" name="action" value="logout">
-            <button class="button compact" type="submit">Logout</button>
+            <button class="button compact" type="submit">{t(lang, "logout")}</button>
           </form>
         </div>
         """
         if user
-        else '<a class="primary" href="/?view=login">Create Account</a>'
+        else f'<a class="primary" href="/?{query("login", lang=lang)}">{t(lang, "account")}</a>'
     )
+    refresh = '<meta http-equiv="refresh" content="8">' if view == "workspace" else ""
     return f"""<!doctype html>
-<html lang="en">
+<html lang="{h(lang)}">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {refresh}
     <title>SkillBridge</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
@@ -182,11 +274,12 @@ def layout(view, content, user=None):
       <main class="main">
         <header class="topbar">
           <div>
-            <p>Open-source collaborative learning platform</p>
+            <p>{t(lang, "subtitle")}</p>
             <h1>SkillBridge</h1>
           </div>
           <div class="top-actions">
-            <a class="button" href="/?view=projects">Explore Projects</a>
+            <a class="button" href="/?{query(view, lang=next_lang)}">{t(lang, "language")}</a>
+            <a class="button" href="/?{query("projects", lang=lang)}">{t(lang, "explore")}</a>
             {account}
           </div>
         </header>
@@ -197,17 +290,17 @@ def layout(view, content, user=None):
 </html>"""
 
 
-def dashboard():
+def dashboard(lang="en"):
     cards = "".join(
         f"""
         <article class="card">
-          <div class="row"><h3>{h(project["title"])}</h3><span>{project["fit"]}% fit</span></div>
+          <div class="row"><h3>{h(project["title"])}</h3><span>{ai_score(project)}% fit</span></div>
           <p>{h(project["summary"])}</p>
           <div class="tags">{tags(project["skills"])}</div>
-          <a class="button" href="/?view=workspace">Request to join</a>
+          <a class="button" href="/?{query("workspace", lang=lang)}">Request to join</a>
         </article>
         """
-        for project in projects[:3]
+        for project in ai_sorted_projects(projects)[:3]
     )
     metrics = "".join(
         f'<article class="metric"><strong>{number}</strong><span>{label}</span></article>'
@@ -217,11 +310,11 @@ def dashboard():
       <section>
         <div class="section-head">
           <h2>Dashboard</h2>
-          <p>Find real teams, build public proof, and exchange skills without payment barriers.</p>
+          <p>{t(lang, "dashboard_text")}</p>
         </div>
         <div class="metrics">{metrics}</div>
         <div class="grid two">
-          <section class="panel"><h2>Recommended Projects</h2>{cards}</section>
+          <section class="panel"><h2>{t(lang, "recommended")}</h2>{cards}</section>
           <section class="panel">
             <h2>Collaboration Map</h2>
             <div class="map">
@@ -234,7 +327,7 @@ def dashboard():
     """
 
 
-def matching():
+def matching(lang="en"):
     checks = "".join(
         f"""
         <label class="chip">
@@ -274,13 +367,14 @@ def matching():
     """
 
 
-def project_catalog(project_filter="All", user=None):
+def project_catalog(project_filter="All", user=None, lang="en"):
     options = ["All"] + sorted({project["type"] for project in projects})
     filter_bar = "".join(
-        f'<a class="filter-pill {"active" if project_filter == option else ""}" href="/?{query("projects", project=option)}">{h(option)}</a>'
+        f'<a class="filter-pill {"active" if project_filter == option else ""}" href="/?{query("projects", project=option, lang=lang)}">{h(option)}</a>'
         for option in options
     )
     visible_projects = projects if project_filter == "All" else [project for project in projects if project["type"] == project_filter]
+    visible_projects = ai_sorted_projects(visible_projects)
     cards = "".join(
         f"""
         <article class="project-card">
@@ -289,7 +383,7 @@ def project_catalog(project_filter="All", user=None):
               <span class="type">{h(project["type"])}</span>
               <h3>{h(project["title"])}</h3>
             </div>
-            <strong>{project["fit"]}%</strong>
+            <strong>{ai_score(project)}%</strong>
           </div>
           <p>{h(project["summary"])}</p>
           <div class="project-meta">
@@ -306,11 +400,12 @@ def project_catalog(project_filter="All", user=None):
             <form method="post" action="/action">
               <input type="hidden" name="action" value="apply_project">
               <input type="hidden" name="project" value="{h(project["title"])}">
+              <input type="hidden" name="lang" value="{h(lang)}">
               <button class="primary full" type="submit">Request to join</button>
             </form>
             '''
             if user
-            else '<a class="primary full" href="/?view=login">Create account to join</a>'
+            else f'<a class="primary full" href="/?{query("login", lang=lang)}">Create account to join</a>'
           }
         </article>
         """
@@ -323,7 +418,7 @@ def project_catalog(project_filter="All", user=None):
             <h2>Open Projects</h2>
             <p>Pick a real project, understand the roles, and turn contributions into verified portfolio proof.</p>
           </div>
-          <a class="button" href="/?view=matching">Improve Match</a>
+          <a class="button" href="/?{query("matching", lang=lang)}">Improve Match</a>
         </div>
         <div class="filter-bar">{filter_bar}</div>
         <div class="project-grid">{cards}</div>
@@ -331,7 +426,7 @@ def project_catalog(project_filter="All", user=None):
     """
 
 
-def login_page(message=""):
+def login_page(message="", lang="en"):
     note = f'<p class="form-note">{h(message)}</p>' if message else ""
     return f"""
       <section>
@@ -342,6 +437,7 @@ def login_page(message=""):
             <h2>Create Account</h2>
             <form method="post" action="/action" class="auth-form">
               <input type="hidden" name="action" value="create_account">
+              <input type="hidden" name="lang" value="{h(lang)}">
               <label>Full name</label>
               <input name="name" required placeholder="Your name">
               <label>Email</label>
@@ -355,6 +451,7 @@ def login_page(message=""):
             <h2>Login</h2>
             <form method="post" action="/action" class="auth-form">
               <input type="hidden" name="action" value="login">
+              <input type="hidden" name="lang" value="{h(lang)}">
               <label>Email</label>
               <input name="email" type="email" required placeholder="you@example.com">
               <label>Password</label>
@@ -367,7 +464,7 @@ def login_page(message=""):
     """
 
 
-def workspace():
+def workspace(lang="en"):
     applications = "".join(
         f"""
         <article class="application-card">
@@ -413,9 +510,10 @@ def workspace():
     return f"""
       <section>
         <div class="section-head project-title-row">
-          <div><h2>Project Workspace</h2><p>Manage tasks, applications, messages, and proof-ready sprint guidance.</p></div>
+          <div><h2>Project Workspace</h2><p>{t(lang, "workspace_text")}</p></div>
           <form method="post" action="/action">
             <input type="hidden" name="action" value="add_ai_task">
+            <input type="hidden" name="lang" value="{h(lang)}">
             <button class="primary" type="submit">Add AI Task</button>
           </form>
         </div>
@@ -433,6 +531,7 @@ def workspace():
             {messages}
             <form class="message-form" method="post" action="/action">
               <input type="hidden" name="action" value="message">
+              <input type="hidden" name="lang" value="{h(lang)}">
               <input name="message" placeholder="Share an update">
               <button class="primary" type="submit">Send</button>
             </form>
@@ -446,7 +545,7 @@ def workspace():
     """
 
 
-def portfolio():
+def portfolio(lang="en"):
     items = [
         ("UX", "Designed multilingual onboarding flow", "Reviewed by Mina"),
         ("API", "Defined project and proof models", "Verified by mentor"),
@@ -463,16 +562,44 @@ def portfolio():
         """
         for code, title, text in items
     )
+    uploads = "".join(
+        f"""
+        <article class="proof upload-proof">
+          <strong>FILE</strong>
+          <div><h3>{h(item["title"])}</h3><p>{h(item["filename"])} uploaded at {h(item["time"])}</p></div>
+          <span>Uploaded</span>
+        </article>
+        """
+        for item in state["proof_uploads"]
+    )
+    if not uploads:
+        uploads = '<p class="empty-state">No proof files uploaded yet.</p>'
     return f"""
       <section>
         <div class="section-head"><h2>Proof of Work</h2><p>Verified work replaces empty certificates with visible contribution history.</p></div>
-        <form method="post" action="/action"><input type="hidden" name="action" value="verify_work"><button class="primary" type="submit">Verify Work</button></form>
+        <form method="post" action="/action"><input type="hidden" name="action" value="verify_work"><input type="hidden" name="lang" value="{h(lang)}"><button class="primary" type="submit">Verify Work</button></form>
         <div class="timeline">{timeline}</div>
+        <section class="panel proof-uploader">
+          <h2>Upload Proof File</h2>
+          <form method="post" action="/action" enctype="multipart/form-data" class="auth-form">
+            <input type="hidden" name="action" value="upload_proof">
+            <input type="hidden" name="lang" value="{h(lang)}">
+            <label>Proof title</label>
+            <input name="title" required placeholder="Example: NGO website homepage">
+            <label>Proof file</label>
+            <input name="proof_file" type="file" required>
+            <button class="primary" type="submit">Upload Proof</button>
+          </form>
+        </section>
+        <section class="panel">
+          <h2>Uploaded Proof Files</h2>
+          {uploads}
+        </section>
       </section>
     """
 
 
-def credits():
+def credits(lang="en"):
     rows = "".join(f'<div class="ledger"><span>{h(item["label"])}</span><strong>{h(item["amount"])}</strong></div>' for item in state["ledger"])
     return f"""
       <section>
@@ -492,16 +619,55 @@ def credits():
     """
 
 
-def coach():
+def coach(lang="en"):
     selected = ", ".join(sorted(state["skills"]))
+    recommended = ai_sorted_projects(projects)[:3]
+    project_list = ", ".join(project["title"] for project in recommended)
     steps = [
-        f"Pick one project with at least 85% match and request a small task using {selected}.",
+        f"Best project matches right now: {project_list}. Your selected skills are {selected}.",
+        "Pick one project with at least 85% match and request a small task.",
         "Convert every completed task into proof with link, reviewer, role, and outcome.",
         "Use skill credits to get mentor review before publishing portfolio evidence.",
         "Keep low-bandwidth design enabled for learners with unstable internet access.",
     ]
     cards = "".join(f'<article class="card"><h3>Step {i}</h3><p>{h(step)}</p></article>' for i, step in enumerate(steps, 1))
     return f'<section><div class="section-head"><h2>AI Coach</h2><p>Guidance generated from your current profile.</p></div><div class="grid cards">{cards}</div></section>'
+
+
+def admin_dashboard(lang="en", user=None):
+    if not user or user.get("role") != "admin":
+        return login_page("Admin access requires the admin account.", lang)
+    user_rows = "".join(
+        f'<div class="admin-row"><span>{h(item["name"])}</span><span>{h(item["email"])}</span><strong>{h(item.get("role", "learner"))}</strong></div>'
+        for item in users.values()
+    )
+    app_rows = "".join(
+        f'<div class="admin-row"><span>{h(item["project"])}</span><span>{h(item["status"])}</span><strong>Application</strong></div>'
+        for item in state["applications"]
+    ) or '<p class="empty-state">No applications yet.</p>'
+    proof_rows = "".join(
+        f'<div class="admin-row"><span>{h(item["title"])}</span><span>{h(item["filename"])}</span><strong>Proof</strong></div>'
+        for item in state["proof_uploads"]
+    ) or '<p class="empty-state">No proof uploads yet.</p>'
+    stats = [
+        (len(users), "users"),
+        (len(projects), "projects"),
+        (len(state["messages"]), "chat messages"),
+        (len(state["proof_uploads"]), "proof files"),
+    ]
+    stat_cards = "".join(f'<article class="metric"><strong>{number}</strong><span>{label}</span></article>' for number, label in stats)
+    return f"""
+      <section>
+        <div class="section-head"><h2>Admin Dashboard</h2><p>Monitor users, project applications, chat activity, and proof submissions.</p></div>
+        <div class="metrics">{stat_cards}</div>
+        <div class="grid two">
+          <section class="panel"><h2>Users</h2>{user_rows}</section>
+          <section class="panel"><h2>Applications</h2>{app_rows}</section>
+          <section class="panel"><h2>Proof Uploads</h2>{proof_rows}</section>
+          <section class="panel"><h2>System Notes</h2><p>Passwords use salted PBKDF2 hashing. Workspace chat auto-refreshes every 8 seconds.</p></section>
+        </div>
+      </section>
+    """
 
 
 views = {
@@ -512,13 +678,50 @@ views = {
     "credits": credits,
     "coach": coach,
     "login": login_page,
+    "admin": admin_dashboard,
 }
 
 
-def redirect(handler, view):
+def redirect(handler, view, lang="en"):
     handler.send_response(303)
-    handler.send_header("Location", f"/?{query(view)}")
+    handler.send_header("Location", f"/?{query(view, lang=lang)}")
     handler.end_headers()
+
+
+def parse_multipart(content_type, body):
+    marker = "boundary="
+    if marker not in content_type:
+        return {}, {}
+    boundary = ("--" + content_type.split(marker, 1)[1].split(";", 1)[0]).encode("utf-8")
+    fields = {}
+    files = {}
+    for part in body.split(boundary):
+        part = part.strip(b"\r\n")
+        if not part or part == b"--" or b"\r\n\r\n" not in part:
+            continue
+        raw_headers, value = part.split(b"\r\n\r\n", 1)
+        value = value.rstrip(b"\r\n")
+        header_text = raw_headers.decode("utf-8", "ignore")
+        disposition = ""
+        for line in header_text.split("\r\n"):
+            if line.lower().startswith("content-disposition"):
+                disposition = line
+        if not disposition:
+            continue
+        pieces = {}
+        for item in disposition.split(";"):
+            if "=" in item:
+                key, raw = item.strip().split("=", 1)
+                pieces[key] = raw.strip('"')
+        name = pieces.get("name")
+        filename = pieces.get("filename")
+        if not name:
+            continue
+        if filename:
+            files[name] = {"filename": filename, "content": value}
+        else:
+            fields[name] = value.decode("utf-8", "ignore")
+    return fields, files
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -534,13 +737,17 @@ class Handler(BaseHTTPRequestHandler):
             return
         params = parse_qs(parsed.query)
         view = params.get("view", ["dashboard"])[0]
+        lang = params.get("lang", ["en"])[0]
+        lang = lang if lang in translations else "en"
         user = current_user(self)
         if view == "projects":
-            content = project_catalog(params.get("project", ["All"])[0], user)
+            content = project_catalog(params.get("project", ["All"])[0], user, lang)
+        elif view == "admin":
+            content = admin_dashboard(lang, user)
         else:
             view = view if view in views else "dashboard"
-            content = views[view]()
-        data = layout(view, content, user).encode("utf-8")
+            content = views[view](lang)
+        data = layout(view, content, user, lang).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
@@ -549,53 +756,62 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
-        data = parse_qs(self.rfile.read(length).decode("utf-8"))
+        raw_body = self.rfile.read(length)
+        content_type = self.headers.get("Content-Type", "")
+        if content_type.startswith("multipart/form-data"):
+            fields, files = parse_multipart(content_type, raw_body)
+            data = {key: [value] for key, value in fields.items()}
+        else:
+            files = {}
+            data = parse_qs(raw_body.decode("utf-8"))
         action = data.get("action", [""])[0]
+        lang = data.get("lang", ["en"])[0]
+        lang = lang if lang in translations else "en"
         if action == "save_profile":
             state["skills"] = set(data.get("skills", []))
             state["goal"] = data.get("goal", [state["goal"]])[0]
-            redirect(self, "dashboard")
+            redirect(self, "dashboard", lang)
         elif action == "create_account":
             name = data.get("name", [""])[0].strip()
             email = data.get("email", [""])[0].strip().lower()
             password = data.get("password", [""])[0]
             if not name or not email or len(password) < 4:
                 self.send_response(303)
-                self.send_header("Location", "/?view=login")
+                self.send_header("Location", f"/?{query('login', lang=lang)}")
                 self.end_headers()
                 return
-            users[email] = {"name": name, "email": email, "password": password}
+            users[email] = {"name": name, "email": email, "password_hash": password_hash(password), "role": "learner"}
             session_id = token_hex(24)
             sessions[session_id] = email
             self.send_response(303)
             self.send_header("Set-Cookie", f"skillbridge_session={session_id}; Path=/; HttpOnly")
-            self.send_header("Location", "/?view=projects")
+            self.send_header("Location", f"/?{query('projects', lang=lang)}")
             self.end_headers()
         elif action == "login":
             email = data.get("email", [""])[0].strip().lower()
             password = data.get("password", [""])[0]
             user = users.get(email)
-            if not user or user["password"] != password:
+            if not user or not password_ok(password, user["password_hash"]):
                 self.send_response(303)
-                self.send_header("Location", "/?view=login")
+                self.send_header("Location", f"/?{query('login', lang=lang)}")
                 self.end_headers()
                 return
             session_id = token_hex(24)
             sessions[session_id] = email
             self.send_response(303)
             self.send_header("Set-Cookie", f"skillbridge_session={session_id}; Path=/; HttpOnly")
-            self.send_header("Location", "/?view=dashboard")
+            self.send_header("Location", f"/?{query('dashboard', lang=lang)}")
             self.end_headers()
         elif action == "logout":
             self.send_response(303)
             self.send_header("Set-Cookie", "skillbridge_session=; Path=/; Max-Age=0")
-            self.send_header("Location", "/?view=login")
+            self.send_header("Location", f"/?{query('login', lang=lang)}")
             self.end_headers()
         elif action == "apply_project":
             project_name = data.get("project", ["Untitled project"])[0]
             if not any(item["project"] == project_name for item in state["applications"]):
                 state["applications"].insert(0, {"project": project_name, "status": "Review pending"})
-            redirect(self, "workspace")
+            redirect(self, "workspace", lang)
         elif action == "add_ai_task":
             next_id = max(task["id"] for task in state["tasks"]) + 1
             selected = ", ".join(sorted(state["skills"])) or "Collaboration"
@@ -610,33 +826,54 @@ class Handler(BaseHTTPRequestHandler):
                     "due": "Next sprint",
                 },
             )
-            redirect(self, "workspace")
+            redirect(self, "workspace", lang)
         elif action == "move_task":
             task_id = int(data.get("id", [0])[0])
             order = {"To do": "Doing", "Doing": "Verified", "Verified": "To do"}
             for task in state["tasks"]:
                 if task["id"] == task_id:
                     task["status"] = order[task["status"]]
-            redirect(self, "workspace")
+            redirect(self, "workspace", lang)
         elif action == "message":
             message = data.get("message", [""])[0].strip()
             if message:
-                state["messages"].append({"name": "You", "text": message})
-            redirect(self, "workspace")
+                user = current_user(self)
+                state["messages"].append({"name": user["name"] if user else "You", "text": message})
+            redirect(self, "workspace", lang)
         elif action == "verify_work":
             state["credits"] += 10
             state["ledger"].insert(0, {"label": "Proof verified by peer reviewer", "amount": "+10"})
-            redirect(self, "credits")
+            redirect(self, "credits", lang)
+        elif action == "upload_proof":
+            upload = files.get("proof_file")
+            title = data.get("title", ["Proof file"])[0].strip() or "Proof file"
+            if upload and upload["content"]:
+                UPLOAD_DIR.mkdir(exist_ok=True)
+                filename = clean_filename(upload["filename"])
+                stored_name = f"{token_hex(6)}-{filename}"
+                (UPLOAD_DIR / stored_name).write_bytes(upload["content"])
+                state["proof_uploads"].insert(
+                    0,
+                    {
+                        "title": title,
+                        "filename": filename,
+                        "stored": stored_name,
+                        "time": strftime("%Y-%m-%d %H:%M"),
+                    },
+                )
+                state["ledger"].insert(0, {"label": "Uploaded proof file", "amount": "+6"})
+                state["credits"] += 6
+            redirect(self, "portfolio", lang)
         elif action == "earn":
             state["credits"] += 8
             state["ledger"].insert(0, {"label": "Completed peer help session", "amount": "+8"})
-            redirect(self, "credits")
+            redirect(self, "credits", lang)
         elif action == "spend":
             state["credits"] = max(0, state["credits"] - 8)
             state["ledger"].insert(0, {"label": "Booked mentor review", "amount": "-8"})
-            redirect(self, "credits")
+            redirect(self, "credits", lang)
         else:
-            redirect(self, "dashboard")
+            redirect(self, "dashboard", lang)
 
 
 if __name__ == "__main__":
