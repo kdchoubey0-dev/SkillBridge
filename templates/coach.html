@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block page_title %}AI-style project coach{% endblock %}
+{% block content %}
+<section class="coach-hero">
+  <div>
+    <p class="eyebrow">Guidance</p>
+    <h2>Your next practical moves</h2>
+    <p>This coach uses your current skill profile and project catalog to suggest a simple build path.</p>
+  </div>
+  {% if not current_user %}<a class="primary-btn" href="{{ url_for('auth', lang=lang) }}">Login for personal guidance</a>{% endif %}
+</section>
+<section class="panel">
+  <div class="cards two-cards coach-grid">
+    {% for step in steps %}
+      <article class="coach-card"><span>Step {{ loop.index }}</span><p>{{ step }}</p></article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block page_title %}Proof of work portfolio{% endblock %}
+{% block content %}
+<section class="proof-hero">
+  <div>
+    <p class="eyebrow">Proof System</p>
+    <h2>Turn finished tasks into evidence</h2>
+    <p>Store screenshots, reports, links, and reviewer notes so every project contribution becomes portfolio-ready proof.</p>
+  </div>
+  {% if not current_user %}<a class="primary-btn" href="{{ url_for('auth', lang=lang) }}">Login to upload proof</a>{% endif %}
+</section>
+
+<section class="split-grid">
+  <div class="panel">
+    <div class="section-head"><div><p class="eyebrow">Verified Timeline</p><h2>Contribution evidence</h2></div></div>
+    <div class="timeline">
+      <article class="proof-item"><strong>UX</strong><div><h3>Designed multilingual onboarding flow</h3><p>Reviewed by Mina with accessibility notes.</p></div><span>Verified</span></article>
+      <article class="proof-item"><strong>API</strong><div><h3>Defined project and proof models</h3><p>Schema checked by mentor before implementation.</p></div><span>Verified</span></article>
+      <article class="proof-item"><strong>Docs</strong><div><h3>Published contribution guide</h3><p>Clear low-bandwidth onboarding instructions.</p></div><span>Verified</span></article>
+    </div>
+  </div>
+  <div class="panel form-panel">
+    <p class="eyebrow">Upload</p><h2>Add proof file</h2>
+    {% if current_user %}
+      <form method="post" enctype="multipart/form-data" class="form-stack">
+        <label>Proof title<input name="title" required placeholder="Example: NGO website homepage"></label>
+        <label>Proof file<input name="proof_file" type="file" required></label>
+        <button class="primary-btn" type="submit">Upload Proof</button>
+      </form>
+      <p class="hint">Allowed: PDF, images, docs, PPT, ZIP. Max size: 8 MB.</p>
+    {% else %}
+      <div class="locked-card"><strong>Login required</strong><p>Create an account or login to upload and download proof files.</p><a class="ghost-btn" href="{{ url_for('auth', lang=lang) }}">Go to login</a></div>
+    {% endif %}
+  </div>
+</section>
+<section class="panel">
+  <div class="section-head"><div><p class="eyebrow">Files</p><h2>Uploaded proof files</h2></div></div>
+  <div class="stack-list">
+    {% for item in uploads %}
+      <article class="mini-card row-card"><div><strong>{{ item.title }}</strong><p>{{ item.original_filename }} uploaded at {{ item.uploaded_at }}</p></div><a class="ghost-btn" href="{{ url_for('uploaded_file', filename=item.stored_filename) }}">Download</a></article>
+    {% else %}
+      <p class="empty">No proof files uploaded yet. Upload your first proof after login.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

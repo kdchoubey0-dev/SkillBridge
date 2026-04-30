@@ -1,0 +1,16 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SkillBridge presentation icon">
+  <rect width="512" height="512" rx="116" fill="#0A1020"/>
+  <path d="M88 256C88 163.2 163.2 88 256 88C348.8 88 424 163.2 424 256C424 348.8 348.8 424 256 424C163.2 424 88 348.8 88 256Z" stroke="#E8EEF7" stroke-opacity="0.14" stroke-width="10"/>
+  <path d="M101 326C171 433 343 439 421 330" stroke="#37E3A5" stroke-width="31" stroke-linecap="round"/>
+  <path d="M421 187C351 80 179 74 101 183" stroke="#4CC9F0" stroke-width="31" stroke-linecap="round"/>
+  <rect x="134" y="130" width="102" height="102" rx="31" fill="#4CC9F0"/>
+  <rect x="248" y="130" width="102" height="102" rx="31" fill="#F4B942"/>
+  <rect x="134" y="280" width="102" height="102" rx="31" fill="#FF6B8A"/>
+  <rect x="248" y="280" width="102" height="102" rx="31" fill="#37E3A5"/>
+  <path d="M180 232H307C331 232 350 251 350 275C350 299 331 318 307 318H187" stroke="#0A1020" stroke-width="36" stroke-linecap="round"/>
+  <path d="M305 180H187C163 180 144 199 144 223C144 247 163 266 187 266H300" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round"/>
+  <circle cx="101" cy="183" r="24" fill="#4CC9F0"/>
+  <circle cx="421" cy="187" r="24" fill="#F4B942"/>
+  <circle cx="421" cy="330" r="24" fill="#37E3A5"/>
+  <circle cx="101" cy="326" r="24" fill="#FF6B8A"/>
+</svg>

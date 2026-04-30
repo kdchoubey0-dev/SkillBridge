@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block page_title %}Skill credit wallet{% endblock %}
+{% block content %}
+<section class="split-grid">
+  <div class="balance-card">
+    <span>Available Balance</span>
+    <strong>{{ balance }}</strong>
+    <p>Earn credits by helping peers. Spend them for mentorship, review, and project guidance.</p>
+    {% if current_user %}
+      <div class="hero-actions">
+        <form method="post" action="{{ url_for('update_credits', action='earn') }}"><button class="primary-btn" type="submit">Earn +8</button></form>
+        <form method="post" action="{{ url_for('update_credits', action='spend') }}"><button class="ghost-btn" type="submit">Spend -8</button></form>
+      </div>
+    {% else %}
+      <a class="primary-btn" href="{{ url_for('auth', lang=lang) }}">Login to use credits</a>
+    {% endif %}
+  </div>
+  <div class="panel credit-guide">
+    <p class="eyebrow">How it works</p><h2>Mentorship without payment barriers</h2>
+    <div class="credit-steps">
+      <article><strong>Earn</strong><span>Review peer work, translate docs, or mentor a small task.</span></article>
+      <article><strong>Spend</strong><span>Book mentor review before marking work verified.</span></article>
+      <article><strong>Prove</strong><span>Attach reviewed work to your proof portfolio.</span></article>
+    </div>
+  </div>
+</section>
+<section class="panel">
+  <p class="eyebrow">Ledger</p><h2>Credit activity</h2>
+  <div class="stack-list">
+    {% for item in ledger %}<article class="ledger-row"><span>{{ item.label }}</span><strong class="{{ 'plus' if item.amount > 0 else 'minus' }}">{{ '%+d'|format(item.amount) }}</strong></article>{% else %}<p class="empty">No credit activity yet.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

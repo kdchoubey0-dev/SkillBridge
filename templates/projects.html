@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block page_title %}Open project catalog{% endblock %}
+{% block content %}
+<section class="catalog-hero improved-catalog-hero">
+  <div>
+    <p class="eyebrow">Catalog</p>
+    <h2>Choose a real-world build sprint</h2>
+    <p>Filter projects, compare open roles, and request to join. Project owners can register opportunities from the owner dashboard.</p>
+  </div>
+  <div class="catalog-actions">
+    <div class="catalog-note"><strong>{{ projects|length }}</strong><span>projects shown</span></div>
+    <a class="primary-btn" href="{{ url_for('owner_dashboard', lang=lang) }}">Register Project</a>
+  </div>
+</section>
+
+<section class="panel project-panel">
+  <div class="section-head project-section-head">
+    <div><p class="eyebrow">Filters</p><h2>Project opportunities</h2></div>
+    {% if current_user %}
+      <a class="ghost-btn" href="{{ url_for('matching', lang=lang) }}">Improve match</a>
+    {% else %}
+      <a class="ghost-btn" href="{{ url_for('auth', lang=lang) }}">Login to personalize</a>
+    {% endif %}
+  </div>
+  <div class="filter-bar project-filter-bar">
+    <a class="filter {{ 'active' if selected_type == 'All' else '' }}" href="{{ url_for('projects', lang=lang, type='All') }}">All</a>
+    {% for type in types %}
+      <a class="filter {{ 'active' if selected_type == type else '' }}" href="{{ url_for('projects', lang=lang, type=type) }}">{{ type }}</a>
+    {% endfor %}
+  </div>
+  <div class="project-card-grid">
+    {% for project in projects %}
+      <article class="project-card rich-project-card stable-project-card">
+        <div class="project-top"><span>{{ project.type }}</span><strong>{{ project.score }}%</strong></div>
+        <h3>{{ project.title }}</h3>
+        <p>{{ project.summary }}</p>
+        {% if project.owner_name %}<small class="owner-chip">Owner: {{ project.owner_name }}</small>{% endif %}
+        <div class="meta-row stable-meta-row"><span>{{ project.duration }}</span><span>{{ project.level }}</span><span>{{ project.status }}</span></div>
+        <div class="project-detail-block"><h4>Open roles</h4><div class="tags">{% for role in project.roles_list %}<span>{{ role }}</span>{% endfor %}</div></div>
+        <div class="project-detail-block"><h4>Needed skills</h4><div class="tags">{% for skill in project.skills_list %}<span>{{ skill }}</span>{% endfor %}</div></div>
+        <div class="project-actions-row">
+          {% if current_user and project.id in applied_project_ids %}
+            <button class="ghost-btn full" type="button" disabled>Already requested</button>
+          {% elif current_user %}
+            <form method="post" action="{{ url_for('apply_project', project_id=project.id) }}"><button class="primary-btn full" type="submit">Request to join</button></form>
+          {% else %}
+            <a class="primary-btn full" href="{{ url_for('auth', lang=lang) }}">Login to join</a>
+          {% endif %}
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-state-card">No projects found for this filter.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

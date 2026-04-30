@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block page_title %}Join SkillBridge{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="panel auth-copy">
+    <span class="badge">Account Access</span>
+    <h2>Create your learner or project-owner profile</h2>
+    <p>Join SkillBridge to request projects, register opportunities, manage workspace tasks, upload proof of work, and track skill credits.</p>
+    <div class="demo-box secure-note">
+      <small>Secure Access</small>
+      <strong>Admin credentials are private</strong>
+      <span>Use your own account for demos. Admin access is not shown publicly.</span>
+    </div>
+  </div>
+  <div class="panel form-panel">
+    <h2>Create Account</h2>
+    <form method="post" class="form-stack">
+      <input type="hidden" name="mode" value="register">
+      <label>Full Name<input name="name" required placeholder="Your name"></label>
+      <label>Email<input name="email" type="email" required placeholder="you@example.com"></label>
+      <label>Password<input name="password" type="password" required minlength="6" placeholder="Minimum 6 characters"></label>
+      <button class="primary-btn" type="submit">Create Account</button>
+    </form>
+  </div>
+  <div class="panel form-panel">
+    <h2>Login</h2>
+    <form method="post" class="form-stack">
+      <input type="hidden" name="mode" value="login">
+      <label>Email<input name="email" type="email" required placeholder="you@example.com"></label>
+      <label>Password<input name="password" type="password" required placeholder="Your password"></label>
+      <button class="ghost-btn full" type="submit">Login</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

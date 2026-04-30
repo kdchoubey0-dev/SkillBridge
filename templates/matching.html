@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block page_title %}Tune your skill signal{% endblock %}
+{% block content %}
+<section class="match-hero">
+  <div>
+    <p class="eyebrow">Skill Intelligence</p>
+    <h2>Better profile, better project ranking</h2>
+    <p>Select your skills and goal. SkillBridge uses this signal to rank projects, suggest collaborators, and guide the next sprint.</p>
+  </div>
+  <div class="match-score-card"><strong>{{ selected|length }}</strong><span>skills selected</span></div>
+</section>
+
+<section class="split-grid matching-grid">
+  <div class="panel">
+    <div class="section-head"><div><p class="eyebrow">Profile</p><h2>Your Skill Profile</h2></div></div>
+    <form method="post" class="form-stack">
+      <div class="chip-grid">
+        {% for skill in all_skills %}
+          <label class="chip"><input type="checkbox" name="skills" value="{{ skill }}" {% if skill in selected %}checked{% endif %}><span>{{ skill }}</span></label>
+        {% endfor %}
+      </div>
+      <label>Current goal<textarea name="goal" rows="4">{{ user.goal }}</textarea></label>
+      <button class="primary-btn" type="submit">Save Profile</button>
+    </form>
+  </div>
+  <div class="matching-side">
+    <div class="panel">
+      <div class="section-head"><div><p class="eyebrow">Collaborators</p><h2>Best collaborators</h2></div></div>
+      <div class="stack-list">
+        {% for person in people %}
+          <article class="person-card">
+            <div><h3>{{ person.name }}</h3><p>{{ person.role }}</p></div>
+            <strong>{{ person.match_score }}%</strong>
+            <div class="tags">{% for skill in person.skills.split(',') %}<span>{{ skill }}</span>{% endfor %}</div>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="panel match-insights">
+      <p class="eyebrow">Profile Tips</p><h2>Improve your match</h2>
+      <div class="credit-steps">
+        <article><strong>Add 4-6 core skills</strong><span>Use concrete skills like Flask, SQLite, UI, Research.</span></article>
+        <article><strong>Write a clear goal</strong><span>Tell teams what you want to build this month.</span></article>
+        <article><strong>Apply to one focused project</strong><span>Smaller sprints create stronger proof of work.</span></article>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

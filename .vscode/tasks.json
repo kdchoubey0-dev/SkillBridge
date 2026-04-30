@@ -2,20 +2,22 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Run SkillBridge",
+      "label": "Run SkillBridge Flask",
       "type": "shell",
       "command": "python3",
-      "args": [
-        "app.py"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
+      "args": ["app.py"],
+      "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      }
+      "presentation": {"reveal": "always", "panel": "dedicated"}
+    },
+    {
+      "label": "Install Requirements",
+      "type": "shell",
+      "command": "python3",
+      "args": ["-m", "pip", "install", "-r", "requirements.txt"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": [],
+      "presentation": {"reveal": "always", "panel": "shared"}
     }
   ]
 }

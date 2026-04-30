@@ -4,5 +4,25 @@
   "code-runner.executorMap": {
     "python": "python3 -u"
   },
-  "code-runner.runInTerminal": true
+  "code-runner.runInTerminal": true,
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/.DS_Store": true,
+    "instance/*.db": true,
+    "instance/*.db-*": true,
+    "static/uploads/**": true,
+    "static/img/exports": true,
+    "static/img/logo-options": true,
+    "assets": true
+  },
+  "search.exclude": {
+    "**/__pycache__": true,
+    "instance/*.db": true,
+    "static/uploads/**": true,
+    "static/img/exports": true,
+    "static/img/logo-options": true,
+    "assets": true
+  },
+  "explorer.compactFolders": false
 }

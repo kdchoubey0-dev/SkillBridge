@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block page_title %}Build proof by building together{% endblock %}
+{% block content %}
+<section class="hero-grid">
+  <div class="hero-card">
+    <span class="badge">Flask + SQLite Ready</span>
+    <h2>Find real project teams, earn skill credits, and turn every contribution into portfolio proof.</h2>
+    <p>SkillBridge helps learners move from theory to collaborative execution with project matching, workspace planning, proof uploads, and mentorship credits.</p>
+    <div class="hero-actions">
+      <a class="primary-btn" href="{{ url_for('projects', lang=lang) }}">Explore Projects</a>
+      <a class="ghost-btn" href="{{ url_for('matching', lang=lang) }}">Improve My Match</a>
+    </div>
+  </div>
+  <div class="impact-card">
+    <div class="impact-ring"><span>92%</span><small>Team Fit</small></div>
+    <p>AI-style ranking uses your selected skills to prioritize practical projects.</p>
+  </div>
+</section>
+
+<section class="metric-grid">
+  <article class="metric"><strong>{{ stats.contributors }}</strong><span>verified contributors</span></article>
+  <article class="metric"><strong>{{ stats.teams }}</strong><span>active teams</span></article>
+  <article class="metric"><strong>{{ stats.languages }}</strong><span>languages supported</span></article>
+  <article class="metric"><strong>{{ stats.credits }}</strong><span>your credits</span></article>
+</section>
+
+<section class="panel">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">Recommended</p>
+      <h2>Best project matches</h2>
+    </div>
+    <a class="ghost-btn" href="{{ url_for('projects', lang=lang) }}">View all</a>
+  </div>
+  <div class="cards three">
+    {% for project in projects %}
+      <article class="project-card compact-card">
+        <div class="project-top"><span>{{ project.type }}</span><strong>{{ project.score }}%</strong></div>
+        <h3>{{ project.title }}</h3>
+        <p>{{ project.summary }}</p>
+        <div class="tags">{% for skill in project.skills_list %}<span>{{ skill }}</span>{% endfor %}</div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

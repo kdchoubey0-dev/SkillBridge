@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block page_title %}Project workspace{% endblock %}
+{% block content %}
+<section class="workspace-hero">
+  <div>
+    <p class="eyebrow">Workspace</p>
+    <h2>Plan the sprint, move tasks, and keep proof ready</h2>
+    <p>Your workspace combines project requests, sprint tasks, team updates, and next-action guidance in one place.</p>
+  </div>
+  <form method="post" action="{{ url_for('add_ai_task') }}">
+    <button class="primary-btn" type="submit">Add AI Task</button>
+  </form>
+</section>
+
+<section class="workspace-stats">
+  <article><strong>{{ task_counts['To do'] }}</strong><span>To do</span></article>
+  <article><strong>{{ task_counts['Doing'] }}</strong><span>Doing</span></article>
+  <article><strong>{{ task_counts['Verified'] }}</strong><span>Verified</span></article>
+  <article><strong>{{ applications|length }}</strong><span>Applications</span></article>
+</section>
+
+<section class="workspace-grid improved-workspace-grid">
+  <div class="panel board-panel">
+    <div class="section-head">
+      <div><p class="eyebrow">Execution</p><h2>Task board</h2></div>
+      <a class="ghost-btn" href="{{ url_for('portfolio', lang=lang) }}">Open Proof</a>
+    </div>
+    <div class="board improved-board">
+      {% for status in ['To do', 'Doing', 'Verified'] %}
+        <div class="column status-{{ status|lower|replace(' ', '-') }}">
+          <div class="column-head"><h3>{{ status }}</h3><span>{{ task_counts[status] }}</span></div>
+          {% for task in tasks if task.status == status %}
+            <article class="task-card improved-task-card">
+              <div class="task-head"><strong>{{ task.title }}</strong><span>{{ task.skill }}</span></div>
+              <div class="task-meta-line"><small>Owner: {{ task.owner }}</small><small>Due: {{ task.due }}</small></div>
+              <form method="post" action="{{ url_for('move_task', task_id=task.id) }}">
+                <button class="ghost-btn full" type="submit">
+                  {% if task.status == 'To do' %}Start Task{% elif task.status == 'Doing' %}Mark Verified{% else %}Reopen Task{% endif %}
+                </button>
+              </form>
+            </article>
+          {% else %}
+            <p class="empty column-empty">No tasks here yet.</p>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <aside class="workspace-side">
+    <div class="panel">
+      <p class="eyebrow">Sprint Planner</p><h2>Next best actions</h2>
+      <div class="stack-list">
+        <article class="mini-card action-card"><strong>Proof Check</strong><p>Add screenshot, link, reviewer, and measurable result.</p></article>
+        <article class="mini-card action-card"><strong>Mentor Review</strong><p>Spend 8 credits before moving important work to verified.</p></article>
+        <article class="mini-card action-card"><strong>Low Data QA</strong><p>Test pages on mobile and slow-network conditions.</p></article>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="eyebrow">Applications</p><h2>Request tracker</h2>
+      <div class="stack-list">
+        {% for app in applications %}
+          <article class="mini-card row-card application-row"><div><strong>{{ app.title }}</strong><p>{{ app.created_at }}</p></div><span>{{ app.status }}</span></article>
+        {% else %}
+          <p class="empty">No project applications yet. Open Projects and request to join one.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </aside>
+
+  <div class="panel team-room-panel">
+    <div class="section-head"><div><p class="eyebrow">Team Room</p><h2>Live updates</h2></div></div>
+    <div class="messages improved-messages">
+      {% for message in messages %}
+        <div class="message"><strong>{{ message.name }}</strong><p>{{ message.text }}</p><small>{{ message.created_at }}</small></div>
+      {% else %}
+        <p class="empty">No team messages yet.</p>
+      {% endfor %}
+    </div>
+    <form class="message-form" method="post" action="{{ url_for('send_message') }}">
+      <input name="message" maxlength="280" placeholder="Share an update with the team">
+      <button class="primary-btn" type="submit">Send</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,4 +1,20 @@
 __pycache__/
 *.pyc
 *.zip
-uploads/
+.env
+.venv/
+venv/
+node_modules/
+.DS_Store
+
+# Local database and uploaded files
+instance/*.db
+instance/*.db-*
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Generated/extra design preview files not needed in main project tree
+static/img/exports/
+static/img/logo-options/
+assets/
+presentation_assets/

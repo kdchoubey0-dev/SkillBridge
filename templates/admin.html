@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block page_title %}Admin dashboard{% endblock %}
+{% block content %}
+<section class="metric-grid">
+  <article class="metric"><strong>{{ stats.users }}</strong><span>users</span></article>
+  <article class="metric"><strong>{{ stats.projects }}</strong><span>projects</span></article>
+  <article class="metric"><strong>{{ stats.messages }}</strong><span>messages</span></article>
+  <article class="metric"><strong>{{ stats.proofs }}</strong><span>proof files</span></article>
+</section>
+<section class="admin-grid">
+  <div class="panel admin-panel">
+    <p class="eyebrow">Users</p>
+    <h2>Registered users</h2>
+    <div class="admin-list">
+      {% for user in users %}
+        <div class="admin-row admin-data-row">
+          <span class="admin-primary">{{ user.name }}</span>
+          <span class="admin-secondary">{{ user.email }}</span>
+          <strong class="admin-badge">{{ user.role }}</strong>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="panel admin-panel">
+    <p class="eyebrow">Applications</p>
+    <h2>Project requests</h2>
+    <div class="admin-list">
+      {% for item in applications %}
+        <div class="admin-row admin-data-row">
+          <span class="admin-primary">{{ item.name }}</span>
+          <span class="admin-secondary">{{ item.title }}</span>
+          <strong class="admin-badge">{{ item.status }}</strong>
+        </div>
+      {% else %}
+        <p class="empty">No applications yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="panel admin-panel">
+    <p class="eyebrow">Proofs</p>
+    <h2>Uploads</h2>
+    <div class="admin-list">
+      {% for item in proofs %}
+        <div class="admin-row admin-data-row">
+          <span class="admin-primary">{{ item.name }}</span>
+          <span class="admin-secondary">{{ item.title }}</span>
+          <strong class="admin-badge">{{ item.original_filename }}</strong>
+        </div>
+      {% else %}
+        <p class="empty">No uploads yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="panel admin-panel guidance-panel"><p class="eyebrow">Project Credit</p><h2>Guidance</h2><p>This project was completed by Satyam Kumar with Kanhaiya Kumar Choubey as a team member, under the guidance of Dr. Arvind Selwal, Assistant Professor.</p></div>
+</section>
+{% endblock %}

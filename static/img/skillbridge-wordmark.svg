@@ -1,0 +1,20 @@
+<svg width="480" height="118" viewBox="0 0 480 118" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SkillBridge wordmark">
+  <rect x="4" y="4" width="110" height="110" rx="28" fill="#0A1020"/>
+  <path d="M24 68C24 48.7 39.7 33 59 33C78.3 33 94 48.7 94 68C94 87.3 78.3 103 59 103C39.7 103 24 87.3 24 68Z" stroke="#E8EEF7" stroke-opacity="0.16" stroke-width="2"/>
+  <path d="M28 82C42 101 76 102 91 82" stroke="#37E3A5" stroke-width="5" stroke-linecap="round"/>
+  <path d="M91 52C77 31 42 31 28 51" stroke="#4CC9F0" stroke-width="5" stroke-linecap="round"/>
+  <rect x="35" y="34" width="23" height="23" rx="7" fill="#4CC9F0"/>
+  <rect x="60" y="34" width="23" height="23" rx="7" fill="#F4B942"/>
+  <rect x="35" y="65" width="23" height="23" rx="7" fill="#FF6B8A"/>
+  <rect x="60" y="65" width="23" height="23" rx="7" fill="#37E3A5"/>
+  <path d="M46 57H75C80 57 84 61 84 66C84 71 80 75 75 75H47" stroke="#0A1020" stroke-width="7" stroke-linecap="round"/>
+  <path d="M75 45H47C42 45 38 49 38 54C38 59 42 63 47 63H73" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/>
+  <text x="142" y="53" font-family="Space Grotesk, Manrope, Arial, sans-serif" font-size="43" font-weight="800" letter-spacing="-1.8" fill="#0A1020">SkillBridge</text>
+  <text x="145" y="82" font-family="Manrope, Arial, sans-serif" font-size="15" font-weight="800" fill="#536171">Global skills • real projects • verified proof</text>
+  <g transform="translate(145 94)">
+    <rect width="54" height="8" rx="4" fill="#4CC9F0"/>
+    <rect x="66" width="54" height="8" rx="4" fill="#F4B942"/>
+    <rect x="132" width="54" height="8" rx="4" fill="#FF6B8A"/>
+    <rect x="198" width="54" height="8" rx="4" fill="#37E3A5"/>
+  </g>
+</svg>

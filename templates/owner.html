@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block page_title %}Project owner dashboard{% endblock %}
+{% block content %}
+<section class="owner-hero">
+  <div>
+    <p class="eyebrow">For CEOs, founders, NGOs, and team leads</p>
+    <h2>Register real projects and find skilled learners</h2>
+    <p>Post a project with required roles and skills. Learners can request to join from the Projects section.</p>
+  </div>
+  <a class="ghost-btn" href="{{ url_for('projects', lang=lang) }}">View Catalog</a>
+</section>
+
+<section class="owner-grid">
+  <div class="panel form-panel">
+    <p class="eyebrow">Register Project</p>
+    <h2>Project details</h2>
+    <form method="post" class="form-stack owner-form">
+      <label>Project title<input name="title" required placeholder="Example: Campus Internship Portal"></label>
+      <label>Category
+        <select name="type">
+          <option>Startup</option>
+          <option>Impact</option>
+          <option>Open Source</option>
+          <option>Career</option>
+          <option>Research</option>
+          <option>NGO</option>
+        </select>
+      </label>
+      <label>Short summary<textarea name="summary" rows="4" required placeholder="What problem does this project solve?"></textarea></label>
+      <div class="form-two">
+        <label>Needed skills<input name="skills" required placeholder="Flask, UI, Research"></label>
+        <label>Open roles<input name="roles" required placeholder="Backend Dev, Designer, Tester"></label>
+      </div>
+      <div class="form-three">
+        <label>Duration<input name="duration" placeholder="4 weeks"></label>
+        <label>Level<input name="level" placeholder="Beginner friendly"></label>
+        <label>Status<input name="status" placeholder="Recruiting"></label>
+      </div>
+      <button class="primary-btn" type="submit">Register Project</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <p class="eyebrow">Owner Dashboard</p>
+    <h2>Your registered projects</h2>
+    <div class="stack-list">
+      {% for project in owner_projects %}
+        <article class="owner-project-card">
+          <div><strong>{{ project.title }}</strong><p>{{ project.summary }}</p></div>
+          <span>{{ project.status }}</span>
+        </article>
+      {% else %}
+        <p class="empty">No owner projects yet. Register your first project using the form.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel owner-applications">
+    <p class="eyebrow">Applications</p>
+    <h2>Requests for your projects</h2>
+    <div class="stack-list">
+      {% for item in recent_applications %}
+        <article class="owner-project-card">
+          <div><strong>{{ item.applicant_name }}</strong><p>{{ item.title }} | {{ item.applicant_email }}</p></div>
+          <span>{{ item.status }}</span>
+        </article>
+      {% else %}
+        <p class="empty">No applications received yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}
