@@ -121,6 +121,26 @@ If port 5000 is busy, the app automatically starts on the next free port, for ex
 http://127.0.0.1:5001
 ```
 
+For phone testing on the same Wi-Fi, use the LAN URL printed by the terminal:
+
+```text
+Open from phone on same Wi-Fi: http://YOUR-LAPTOP-IP:PORT
+```
+
+For phones that are not on the same Wi-Fi, create a temporary public tunnel while the Flask app is running:
+
+```bash
+ssh -R 80:localhost:PORT nokey@localhost.run
+```
+
+Replace `PORT` with the port shown by Flask, for example `5002`. The terminal will print an HTTPS URL like:
+
+```text
+https://example.lhr.life
+```
+
+Open that HTTPS URL on any phone using mobile data or another network. Keep both terminals open while testing: one terminal for Flask and one terminal for the tunnel.
+
 ## VS Code Run Button
 
 This project includes VS Code configuration files.

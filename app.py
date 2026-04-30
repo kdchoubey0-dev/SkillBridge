@@ -778,7 +778,7 @@ if __name__ == "__main__":
     init_db()
     requested_port = int(os.environ.get("PORT", "5000"))
     host = os.environ.get("HOST", "0.0.0.0")
-    active_port = find_available_port(requested_port)
+    active_port = find_available_port(requested_port, host=host)
     if active_port != requested_port:
         print(f"Port {requested_port} is busy, so SkillBridge is running on {active_port}")
     print(f"Open SkillBridge at http://127.0.0.1:{active_port}")
